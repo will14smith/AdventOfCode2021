@@ -6,7 +6,7 @@ abstract class InputDay[Model, Result1, Result2] extends Day {
 
   def run[B](name: String, calc: Model => B): Unit = run(name, parse(input), calc)
 
-  def parse(line: String) : Model
+  def parse(input: String) : Model
 
   def part1(data: Model): Result1
   def part2(data: Model): Result2
