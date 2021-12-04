@@ -12,31 +12,28 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
   def part1(data: Day4.Input): Int = {
     for(n <- data.input) {
       for(b <- data.boards) {
-        b.remove(n)
-        if(b.is_finished) {
-          return b.rows.flatten.filter(_ > 0).sum * n
+        b.mark(n)
+        if(b.hasBingo) {
+          return b.unmarked.sum * n
         }
       }
     }
 
     ???
   }
+
   def part2(data: Day4.Input): Int = {
     var finished: List[(Day4.Board, Int)] = List()
+    var unfinished = data.boards
 
     for(n <- data.input) {
-      for(b <- data.boards) {
-        if(!b.is_finished) {
-          b.remove(n)
-          if (b.is_finished) {
-            finished = finished.prepended((b, n))
-          }
-        }
-      }
+      val (newlyFinished, nextUnfinished) = unfinished.partitionMap { b => b.mark(n); if b.hasBingo then Left (b, n) else Right(b) }
+      finished = newlyFinished ++ finished
+      unfinished = nextUnfinished
 
-      if(data.boards.forall(_.is_finished)) {
+      if(unfinished.isEmpty) {
         val (b, n) = finished.head
-        return b.rows.flatten.filter(_ > 0).sum * n
+        return b.unmarked.sum * n
       }
     }
 
@@ -45,15 +42,10 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
 
   class Input(val input: List[Int], val boards: List[Board])
   class Board(var rows: List[List[Int]]) {
-    def remove(n: Int): Unit = {
-      for(x <- 0 until board_size) {
-        for(y <- 0 until board_size) {
-          if(rows(x)(y) == n) { rows = rows.updated(x, rows(x).updated(y, -1)) }
-        }
-      }
-    }
+    def mark(n: Int): Unit = rows = rows.map(row => row.map(v => if v == n then -1 else v))
+    def unmarked: List[Int] = rows.flatten.filter(_ > 0)
 
-    def is_finished: Boolean = {
+    def hasBingo: Boolean = {
       for(x <- 0 until board_size) {
         var xf = true
         var yf = true
@@ -69,6 +61,7 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
 
       false
     }
+
   }
 
   class InputParser extends RegexParsers {
@@ -76,12 +69,12 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
 
     def number: Parser[Int] = """\d+""".r ^^ { _.toInt }
 
-    def comma_numbers: Parser[List[Int]] = repsep(number, ",")
-    def space_numbers: Parser[List[Int]] = rep(number)
+    def commaNumbers: Parser[List[Int]] = rep1sep(number, ",")
+    def spaceNumbers: Parser[List[Int]] = rep1(number)
 
-    def input_numbers = comma_numbers
-    def bingo_board = "\n" ~ repN(board_size, "\n" ~ space_numbers ^^ { case _ ~ n => n }) ^^ { case _ ~ b => Board(b) }
+    def inputNumbers: Parser[List[Int]] = commaNumbers
+    def bingoBoard: Parser[Board] = "\n" ~> repN(board_size, "\n" ~> spaceNumbers) ^^ { Board(_) }
 
-    def input: Parser[Day4.Input] = input_numbers ~ rep(bingo_board) ^^ { case i ~ b => Input(i, b) }
+    def input: Parser[Day4.Input] = inputNumbers ~ rep(bingoBoard) ^^ { case i ~ b => Input(i, b) }
   }
 }
