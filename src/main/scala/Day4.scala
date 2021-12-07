@@ -1,15 +1,14 @@
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
-object Day4 extends InputDay[Day4.Input, Int, Int] {
+object Day4 extends ParseDay[Day4.Model, Int, Int] {
   val board_size = 5
 
-  def parse(input: String): Day4.Input = {
-    val parser = new InputParser()
-    parser.parse(parser.input, input).get
-  }
+  def inputNumbers: Parser[List[Int]] = commaNumbers
+  def bingoBoard: Parser[Board] = "\n" ~> repN(board_size, "\n" ~> spaceNumbers) ^^ { Board(_) }
+  def model: Parser[Day4.Model] = inputNumbers ~ rep(bingoBoard) ^^ { case i ~ b => Model(i, b) }
 
-  def part1(data: Day4.Input): Int = {
+  def part1(data: Day4.Model): Int = {
     for(n <- data.input) {
       for(b <- data.boards) {
         b.mark(n)
@@ -22,7 +21,7 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
     ???
   }
 
-  def part2(data: Day4.Input): Int = {
+  def part2(data: Day4.Model): Int = {
     var finished: List[(Day4.Board, Int)] = List()
     var unfinished = data.boards
 
@@ -40,7 +39,7 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
     ???
   }
 
-  class Input(val input: List[Int], val boards: List[Board])
+  class Model(val input: List[Int], val boards: List[Board])
   class Board(var rows: List[List[Int]]) {
     def mark(n: Int): Unit = rows = rows.map(row => row.map(v => if v == n then -1 else v))
     def unmarked: List[Int] = rows.flatten.filter(_ > 0)
@@ -62,19 +61,5 @@ object Day4 extends InputDay[Day4.Input, Int, Int] {
       false
     }
 
-  }
-
-  class InputParser extends RegexParsers {
-    override protected val whiteSpace: Regex = "[ \r]+".r
-
-    def number: Parser[Int] = """\d+""".r ^^ { _.toInt }
-
-    def commaNumbers: Parser[List[Int]] = rep1sep(number, ",")
-    def spaceNumbers: Parser[List[Int]] = rep1(number)
-
-    def inputNumbers: Parser[List[Int]] = commaNumbers
-    def bingoBoard: Parser[Board] = "\n" ~> repN(board_size, "\n" ~> spaceNumbers) ^^ { Board(_) }
-
-    def input: Parser[Day4.Input] = inputNumbers ~ rep(bingoBoard) ^^ { case i ~ b => Input(i, b) }
   }
 }

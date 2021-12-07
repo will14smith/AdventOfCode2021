@@ -1,4 +1,4 @@
-object Day6 extends InputDay[Map[Int, Long], Long, Long] {
+object Day6 extends Day[Map[Int, Long], Long, Long] {
   def parse(input: String): Map[Int, Long] = input.split(',').map(_.toInt).groupMapReduce(identity)(_ => 1L)(_ + _)
 
   def part1(data: Map[Int, Long]): Long = count(IndexedSeq.iterate(data, 80 + 1)(apply).last)

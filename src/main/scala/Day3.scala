@@ -1,7 +1,7 @@
 object Day3 extends LineDay[Vector[Int], Int, Int] {
   val numberOfBits = 12
 
-  def parse(line: String): Vector[Int] = line.iterator.map { a => if a == '0' then -1 else 1 }.toVector
+  def parseLine(line: String): Vector[Int] = line.iterator.map { a => if a == '0' then -1 else 1 }.toVector
 
   def part1(data: Iterator[Vector[Int]]): Int = {
     val common = most_common(data.toList)

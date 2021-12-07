@@ -1,11 +1,9 @@
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
-object Day5 extends LineDay[Day5.Line, Int, Int] {
-  def parse(line: String): Line = {
-    val parser = new LineParser()
-    parser.parse(parser.line, line).get
-  }
+object Day5 extends ParseLineDay[Day5.Line, Int, Int] {
+  def coord: Parser[Coord] = number ~ ("," ~> number) ^^ { case x ~ y => Coord(x, y) }
+  def model: Parser[Line] = coord ~ ("->" ~> coord) ^^ { case s ~ e => Line(s, e) }
 
   def part1(data: Iterator[Line]): Int = {
     val straight = data.filter { l => l.start.x == l.end.x || l.start.y == l.end.y }.toList
@@ -34,12 +32,5 @@ object Day5 extends LineDay[Day5.Line, Int, Int] {
   }
   class Line(val start: Coord, val end: Coord) {
     override def toString: String = s"$start -> $end"
-  }
-
-  class LineParser extends RegexParsers {
-    def number: Parser[Int] = """\d+""".r ^^ { _.toInt }
-
-    def coord: Parser[Coord] = number ~ ("," ~> number) ^^ { case x ~ y => Coord(x, y) }
-    def line: Parser[Line] = coord ~ ("->" ~> coord) ^^ { case s ~ e => Line(s, e) }
   }
 }
