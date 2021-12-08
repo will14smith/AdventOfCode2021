@@ -29,21 +29,20 @@ object Day8 extends ParseLineDay[Day8.Model, Int, Int] {
   }
 
   private def solveMapping(signals: List[Segment]): Map[Char, Char] = {
+    val freqs = signals.flatten.groupMapReduce(identity)(_ => 1)(_ + _).map(_.swap)
+
     val one = signals.find(_.size == 2).get
     val seven = signals.find(_.size == 3).get
     val four = signals.find(_.size == 4).get
-    val seg5 = signals.filter(_.size == 5)
-    val seg6 = signals.filter(_.size == 6)
+    val eight = signals.find(_.size == 7).get
 
     val a = seven.diff(one).toSeq.head
-    val bd = four.diff(one)
-    val dg = seg5.map(_.diff(seven)).find(s => s.size == 2).get
-    val d = bd.intersect(dg).toSeq.head
-    val b = (bd - d).toSeq.head
-    val g = (dg - d).toSeq.head
-    val c = seg6.map(one.diff(_)).find(s => s.size == 1).get.toSeq.head
-    val f = seg6.map(s => s - a - b - c - d - g).find(s => s.size == 1).get.toSeq.head
-    val e = seg6.map(s => s - a - b - c - d - g - f).find(s => s.size == 1).get.toSeq.head
+    val b = freqs(6)
+    val f = freqs(9)
+    val c = (one - f).toSeq.head
+    val d = four.diff(Set(b, c, f)).toSeq.head
+    val e = freqs(4)
+    val g = eight.diff(Set(a, b, c, d, e, f)).toSeq.head
 
     Map(
       a -> 'a',
