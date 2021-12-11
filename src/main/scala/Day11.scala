@@ -1,62 +1,30 @@
 import scala.io.AnsiColor.*
 
-object Day11 extends Day[Day11.Data, Int, Int] {
-  def parse(input: String): Data = input.linesIterator.map(_.map(_ - '0').toArray).toArray
+object Day11 extends Day[Grid[Int], Int, Int] {
+  def parse(input: String): Grid[Int] = Grid(input.linesIterator.map(_.map(_ - '0').toArray).toArray)
 
-  def part1(data: Data): Int = IndexedSeq.iterate((data, 0), 100 + 1)(s => step(s._1)).map(_._2).sum
-  def part2(data: Data): Int = {
-    var current = data
-    var steps = 0
+  def part1(data: Grid[Int]): Int = steps(data).take(100 + 1).map(_._2).sum
+  def part2(data: Grid[Int]): Int = steps(data).indexWhere(_._2 == data.w * data.h)
 
-    while(true) {
-      val (next, flashes) = step(current)
+  def steps(data: Grid[Int]): Iterator[(Grid[Int], Int)] = Iterator.iterate((data, 0))(a => step(a._1))
+  def step(data: Grid[Int]): (Grid[Int], Int) = flash(increment(data)).applyLeft(reset)
 
-      if(flashes == data.length * data(0).length) {
-        return steps + 1
-      }
-
-      current = next
-      steps += 1
-    }
-
-    ???
-  }
-
-  def step(data: Data): (Data, Int) = {
-    val a = increment(data)
-    val (b, flashes) = flash(a)
-    (reset(b), flashes)
-  }
-
-  def increment(data: Data): Data = data.map(_.map(_ + 1))
-  def flash(data: Data): (Data, Int) = {
+  def increment(data: Grid[Int]): Grid[Int] = data.map(_ + 1)
+  def flash(data: Grid[Int]): (Grid[Int], Int) = {
     var flashes = 0
-    val next = Array.ofDim[Int](data.length, data(0).length)
-
-    for (y <- data.indices; x <- data(y).indices) {
-      if(data(y)(x) > 9) {
+    val next = data.map((l, p) => {
+      if(l > 9) {
         flashes += 1
-        next(y).update(x, Int.MinValue)
+        Int.MinValue
       } else {
-        var level = data(y)(x)
-
-        for(dy <- -1 to 1; dx <- -1 to 1) {
-          val nx = x + dx
-          val ny = y + dy
-          if(0 <= ny && ny < data.length && 0 <= nx && nx < data(ny).length) {
-            if(data(ny)(nx) > 9) {
-              level += 1
-            }
-          }
-        }
-
-        next(y).update(x, level)
+        l + data.neighbours(p).count(data(_) > 9)
       }
-    }
+    })
 
-    if flashes > 0 then { val x = flash(next); (x._1, x._2 + flashes) } else (next, flashes)
+    if flashes > 0 then flash(next).applyRight(_ + flashes) else (next, flashes)
   }
-  def reset(data: Data): Data = data.map(x => x.map(o => if o < 0 then 0 else o))
+  def reset(data: Grid[Int]): Grid[Int] = data.map(_.clampLower(0))
 
-  type Data = Array[Array[Int]]
+  extension (g: Grid[Int])
+    def neighbours(p: Position): Seq[Position] = p.neighbours.filter(g.isValid)
 }
