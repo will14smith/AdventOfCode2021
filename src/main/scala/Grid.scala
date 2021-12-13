@@ -37,11 +37,13 @@ object Grid {
 }
 
 extension[A] (g: Grid[A])
-  def debug(highlight: Position => Boolean): Unit = {
+  def debug(highlight: Position => Boolean): Unit = debug(highlight, _.toString)
+
+  def debug(highlight: Position => Boolean, show: A => String): Unit = {
     for (y <- 0 until g.h) {
       for (x <- 0 until g.w) {
         if (highlight(Position(x, y))) print(RED)
-        print(g(x, y))
+        print(show(g(x, y)))
         print(RESET)
       }
       
