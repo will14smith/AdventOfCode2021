@@ -1,9 +1,13 @@
-object Day13 extends Day[Day13.Model, Int, Int] {
-  def parse(input: String): Model = input.split("\r?\n\r?\n") match { case Array(p, i) => Model(buildGrid(parsePositions(p)), parseInstructions(i)) }
-  def parsePositions(input: String): List[Position] = input.linesIterator.map(_.split(",") match { case Array(x, y) => Position(x.toInt, y.toInt) }).toList
-  def parseInstructions(input: String): List[Instruction] = input.linesIterator.map(l => {
-    if l.startsWith("fold along y=") then { Instruction.Y(l.substring(13).toInt) } else { Instruction.X(l.substring(13).toInt) }
-  }).toList
+object Day13 extends ParseDay[Day13.Model, Int, String] {
+  private def position = number ~ ("," ~> number) ^^ { case x ~ y => Position(x, y) }
+  private def grid = rep1(position <~ "\n") ^^ buildGrid
+
+  private def dir = "x" ~> success(Instruction.X.apply) | "y" ~> success(Instruction.Y.apply)
+  private def instruction = "fold along".r ~> (dir <~ "=") ~ number ^^ { case d ~ c => d(c) }
+  private def instructions = repsep(instruction, "\n")
+
+  def model: Parser[Model] = grid ~ ("\n" ~> instructions) ^^ { case g ~ i => Model(g, i) }
+
 
   private def buildGrid(positions: List[Position]): Grid[Boolean] = {
     val w = positions.map(_.x).max + 1
@@ -22,12 +26,12 @@ object Day13 extends Day[Day13.Model, Int, Int] {
     val folded = fold(data.marks, data.instructions.head)
     folded.keys.map(folded(_)).count(identity)
   }
-  def part2(data: Model): Int = {
+  def part2(data: Model): String = {
     val result = data.instructions.foldLeft(data.marks)(fold)
 
-    result.debug(result(_), if _ then "#" else ".")
+    result.debug(result(_), if _ then "#" else " ")
 
-    0
+    "See ^"
   }
 
   def fold(marks: Grid[Boolean], instruction: Instruction): Grid[Boolean] = {
@@ -38,30 +42,21 @@ object Day13 extends Day[Day13.Model, Int, Int] {
 
     for(p <- marks.keys) {
       val mappedP = instruction match {
-        case Instruction.X(coord) => Position(m(p.x, coord, marks.w), p.y)
-        case Instruction.Y(coord) => Position(p.x, m(p.y, coord, marks.h))
+        case Instruction.X(coord) => Position(map(p.x, coord, marks.w), p.y)
+        case Instruction.Y(coord) => Position(p.x, map(p.y, coord, marks.h))
       }
 
       newGrid.update(mappedP, newGrid(mappedP) || marks(p))
     }
 
-//    for(p <- newGrid.keys) {
-//      newGrid.update(p, marks(p))
-//
-//      instruction match {
-//        case Instruction.X(coord) => newGrid.update(p, marks(p) || marks(Position(marks.w - p.x - 1, p.y)))
-//        case Instruction.Y(coord) => newGrid.update(p, marks(p) || marks(Position(p.x, marks.h - p.y - 1)))
-//      }
-//    }
-
     newGrid
   }
 
-  def m(p: Int, c: Int, d: Int): Int = {
-    val bias = 2 * c - (d - 1)
-    val m = if p < c then p else 2 * c - p
+  def map(pos: Int, fold: Int, len: Int): Int = {
+    val bias = 2 * fold - (len - 1)
+    val m = if pos < fold then pos else 2 * fold - pos
     val x = if bias < 0 then m - bias else m
-    if x == c then 0 else x
+    if x == fold then 0 else x
   }
 
   enum Instruction:
