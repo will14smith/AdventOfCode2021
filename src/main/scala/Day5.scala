@@ -1,17 +1,17 @@
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
-object Day5 extends ParseLineDay[Day5.Line, Int, Int] {
+object Day5 extends ParseLineDay[Day5.Line, Long, Long] {
   def coord: Parser[Coord] = number ~ ("," ~> number) ^^ { case x ~ y => Coord(x, y) }
   def model: Parser[Line] = coord ~ ("->" ~> coord) ^^ { case s ~ e => Line(s, e) }
 
-  def part1(data: Iterator[Line]): Int = {
+  def part1(data: Iterator[Line]): Long = {
     val straight = data.filter { l => l.start.x == l.end.x || l.start.y == l.end.y }.toList
     plotGroupLines(straight).values.count(_ > 1)
   }
-  def part2(data: Iterator[Line]): Int = plotGroupLines(data.toList).values.count(_ > 1)
+  def part2(data: Iterator[Line]): Long = plotGroupLines(data.toList).values.count(_ > 1)
 
-  private def plotGroupLines(lines: List[Line]): Map[Coord, Int] = lines.flatMap(plotLine).groupMapReduce(identity)(_ => 1)(_ + _)
+  private def plotGroupLines(lines: List[Line]): Map[Coord, Long] = lines.flatMap(plotLine).freq
   private def plotLine(line: Line): List[Coord] = {
     val diff = line.end - line.start
 

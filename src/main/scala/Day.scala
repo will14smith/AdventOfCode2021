@@ -7,7 +7,7 @@ import scala.util.parsing.combinator.RegexParsers
 abstract class Day[Model, Result1, Result2] {
   private val pattern = """.*Day(\d+).*""".r
   private def fileName = "inputs/day" + pattern.findFirstMatchIn(getClass.getName).get.group(1)
-  private def input : String = Source.fromFile(fileName).mkString
+  private def input : String = Source.fromFile(fileName).mkString.replace("\r\n", "\n")
 
   def main(args: Array[String]): Unit = {
     run("Part 1", part1)

@@ -1,13 +1,12 @@
 object Day13 extends ParseDay[Day13.Model, Int, String] {
   private def position = number ~ ("," ~> number) ^^ { case x ~ y => Position(x, y) }
-  private def grid = rep1(position <~ "\n") ^^ buildGrid
+  private def grid = repsep(position, "\n") ^^ buildGrid
 
   private def dir = "x" ~> success(Instruction.X.apply) | "y" ~> success(Instruction.Y.apply)
   private def instruction = "fold along".r ~> (dir <~ "=") ~ number ^^ { case d ~ c => d(c) }
   private def instructions = repsep(instruction, "\n")
 
-  def model: Parser[Model] = grid ~ ("\n" ~> instructions) ^^ { case g ~ i => Model(g, i) }
-
+  def model: Parser[Model] = grid ~ ("\n\n" ~> instructions) ^^ { case g ~ i => Model(g, i) }
 
   private def buildGrid(positions: List[Position]): Grid[Boolean] = {
     val w = positions.map(_.x).max + 1
