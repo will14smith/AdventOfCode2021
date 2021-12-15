@@ -1,66 +1,36 @@
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 object Day15 extends Day[Grid[Int], Int, Int] {
   def parse(input: String): Grid[Int] = Grid(input.linesIterator.map(_.map(_ - '0').toArray).toArray)
 
-  def part1(data: Grid[Int]): Int = {
+  def part1(data: Grid[Int]): Int = solve(data)
+  def part2(data: Grid[Int]): Int = solve(buildGrid(data, 5))
+
+  def solve(data: Grid[Int]): Int = {
     val path = search(data)(Position(0, 0), Position(data.w - 1, data.h - 1), estimate(data))
-    // data.debug(path.contains(_))
     path.tail.map(data(_)).sum
   }
-  def part2(data: Grid[Int]): Int = {
-    val actualData = buildGrid(data)
-
-    val path = search(actualData)(Position(0, 0), Position(actualData.w - 1, actualData.h - 1), estimate(actualData))
-    // actualData.debug(path.contains(_))
-    path.tail.map(actualData(_)).sum
-  }
-
-  def buildGrid(data: Grid[Int]): Grid[Int] = {
-    val multiplier = 5
-    val actual = Array.ofDim[Int](data.h * multiplier, data.w * multiplier)
-
-    for(p <- data.keys) {
-      for(y <- 0 until multiplier) {
-        val ay = p.y + y * data.h
-        for(x <- 0 until multiplier) {
-          val ax = p.x + x * data.w
-          val value = data(p) + x + y
-
-          actual(ay).update(ax, if value > 9 then value - 9 else value)
-        }
-      }
-    }
-
-    Grid(actual)
-  }
+  def buildGrid(data: Grid[Int], multiplier: Int): Grid[Int] = Grid.empty[Int](data.h * multiplier, data.w * multiplier).map((_, p) => ((data(Position(p.x % data.w, p.y % data.h)) + p.x / data.w + p.y / data.h - 1) % 9) + 1)
 
   def estimate(data: Grid[Int])(node: Position, goal: Position): Int = (node.x - goal.x).abs + (node.y - goal.y).abs
-  def buildPath(data: Grid[Int])(previous: Map[Position, Position], current: Position): List[Position] = {
-    var node = current
-    var totalPath = List(node)
-
-    while(previous.contains(node)) {
-      node = previous(node)
-      totalPath = node :: totalPath
+  @tailrec
+  def buildPath(data: Grid[Int])(previous: Map[Position, Position], current: Position, path: List[Position] = List()): List[Position] = {
+    previous.get(current) match {
+      case Some(node) => buildPath(data)(previous, node, current :: path)
+      case None => current :: path
     }
-
-    totalPath
   }
   def search(data: Grid[Int])(start: Position, goal: Position, h: (Position, Position) => Int): List[Position] = {
     val previous = mutable.Map[Position, Position]()
 
     val gScore = mutable.Map.from(data.keys.map(_ -> Int.MaxValue))
-    val fScore = mutable.Map.from(data.keys.map(_ -> Int.MaxValue))
-    val open = mutable.Set[Position]()
+    val open = mutable.PriorityQueue[(Position, Int)](start -> h(start, goal))(Ordering.by[(Position, Int), Int](_._2).reverse)
 
     gScore.update(start, 0)
-    fScore.update(start, h(start, goal))
-    open.add(start)
 
     while(open.nonEmpty) {
-      val current = open.minBy(fScore(_))
-      open.remove(current)
+      val (current, _) = open.dequeue()
 
       if (current == goal) return buildPath(data)(previous.toMap, current)
 
@@ -71,19 +41,12 @@ object Day15 extends Day[Grid[Int], Int, Int] {
           // This path to neighbor is better than any previous one. Record it!
           previous.update(neighbor, current)
           gScore.update(neighbor, tentativeGScore)
-          fScore.update(neighbor, tentativeGScore + h(neighbor, goal))
-
-          if(!open.contains(neighbor)) {
-            open.add(neighbor)
-          }
+          open.enqueue((neighbor, tentativeGScore + h(neighbor, goal)))
         }
       }
     }
-//
-//    // Open set is empty but goal was never reached
-//    return failure
 
-    ???
+    throw Exception("could not find path")
   }
 
   extension (g: Grid[Int])
