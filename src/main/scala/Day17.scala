@@ -7,12 +7,10 @@ object Day17 extends ParseDay[Day17.Target, Int, Int] {
 
     var maxH = 0
 
-    for(x <- 0 to data.topLeft.x) {
-      for(y <- 0 to data.bottomRight.x*10) {
-        val s = validSteps(data)(Probe(initialPosition, Position(x, y)))
-        if (didIntersect(data)(s)) {
-          maxH = Math.max(maxH, s.map(_.position.y).max)
-        }
+    for(v <- initialVelocities(data)(initialPosition)) {
+      val s = validSteps(data)(Probe(initialPosition, v))
+      if (didIntersect(data)(s)) {
+        maxH = Math.max(maxH, s.map(_.position.y).max)
       }
     }
 
@@ -23,34 +21,30 @@ object Day17 extends ParseDay[Day17.Target, Int, Int] {
 
     var vectors = Set[Position]()
 
-    for(x <- 0 to data.bottomRight.x) {
-      for(y <- data.bottomRight.y to data.bottomRight.x*10) {
-        val s = validSteps(data)(Probe(initialPosition, Position(x, y)))
-        if (didIntersect(data)(s)) {
-          vectors = vectors + Position(x, y)
-        }
+    for(v <- initialVelocities(data)(initialPosition)) {
+      val s = validSteps(data)(Probe(initialPosition, v))
+      if (didIntersect(data)(s)) {
+        vectors = vectors + v
       }
     }
 
     vectors.size
   }
 
+  def initialVelocities(target: Target)(initial: Position): Seq[Position] = for(x <- initialXVelocities(target)(initial); y <- target.bottomRight.y to -target.bottomRight.y) yield Position(x, y)
+  def initialXVelocities(target: Target)(initial: Position): List[Int] = {
+    val minDX = target.topLeft.x - initial.x
+    val maxDX = target.bottomRight.x - initial.x
+
+    Iterator.iterate(0)(_ + 1).take(maxDX + 1).map(n => triangleSteps(n).takeWhile(_ <= maxDX).exists(_.between(minDX, maxDX))).zipWithIndex.filter(_._1).map(_._2).toList
+  }
+  def triangleSteps(n: Int): Iterator[Int] = Iterator.iterate(n)(_ - 1).takeWhile(_ > 0).map(s => (s to n).sum)
+
   def validSteps(target: Target)(initial: Probe): List[Probe] = steps(initial).takeWhile(p => !target.isPast(p.position)).toList
   def didIntersect(target: Target)(s: List[Probe]): Boolean = s.exists(p => target.isIn(p.position))
 
-  def steps(initial: Probe): Iterator[Probe] = new Iterator[Probe] {
-    private var current = initial
-
-    def hasNext: Boolean = true
-
-    def next(): Probe = {
-      val newPosition = current.position + current.velocity
-      val newVelocity = Position((current.velocity.x - 1).clampLower(0), current.velocity.y - 1)
-
-      current = Probe(newPosition, newVelocity)
-      current
-    }
-  }
+  def steps(initial: Probe): Iterator[Probe] = Iterator.iterate(initial)(step)
+  def step(p: Probe): Probe = Probe(p.position + p.velocity, Position((p.velocity.x - 1).clampLower(0), p.velocity.y - 1))
 
   case class Probe(position: Position, velocity: Position)
   case class Target(topLeft: Position, bottomRight: Position) {
