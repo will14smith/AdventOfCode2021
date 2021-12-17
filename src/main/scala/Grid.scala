@@ -4,6 +4,8 @@ import scala.reflect.ClassTag
 case class Position(x: Int, y: Int) {
   def neighbours: Seq[Position] = for(dy <- -1 to 1; dx <- -1 to 1) yield Position(x + dx, y + dy)
   def orthogonal: Seq[Position] = Seq(copy(x = x + 1), copy(x = x - 1), copy(y = y + 1), copy(y = y - 1))
+
+  def +(other: Position): Position = Position(x + other.x, y + other.y)
 }
 
 case class Grid[T](private val elements: Array[Array[T]]) {

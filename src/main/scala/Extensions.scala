@@ -7,6 +7,10 @@ extension[A, B] (x: (A, B))
 extension (i: Int)
   def clampLower(l: Int): Int = if i < l then l else i
 
+extension (x: (Int, Int))
+  def min = if x._1 < x._2 then x._1 else x._2
+  def max = if x._1 > x._2 then x._1 else x._2
+
 extension[A] (i : IterableOnce[A])
   def freq: Map[A, Long] = i.iterator.toList.groupMapReduce(identity)(_ => 1L)(_ + _)
 

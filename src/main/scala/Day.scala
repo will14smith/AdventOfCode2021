@@ -37,7 +37,7 @@ abstract class LineDay[Model, Result1, Result2] extends Day[Iterator[Model], Res
 trait AOCParsers extends RegexParsers {
   override protected val whiteSpace: Regex = "[ \r]+".r
 
-  def number: Parser[Int] = """\d+""".r ^^ { _.toInt }
+  def number: Parser[Int] = """-?\d+""".r ^^ { _.toInt }
 
   def commaNumbers: Parser[List[Int]] = rep1sep(number, ",")
   def spaceNumbers: Parser[List[Int]] = rep1(number)
