@@ -9,18 +9,10 @@ object Day18 extends ParseLineDay[Day18.Number, Int, Int] {
     magnitude(data.reduceLeft(add))
   }
   def part2(data: Iterator[Number]): Int = {
-    val l = data.toList
+    val nums = data.toList
 
-    var max = 0
-
-    for(a <- l; b <- l) {
-      if(a != b) {
-        max = Math.max(max, magnitude(add(a, b)))
-        max = Math.max(max, magnitude(add(b, a)))
-      }
-    }
-
-    max
+    val values = for(a <- nums; b <- nums if a != b) yield magnitude(add(a, b))
+    values.max
   }
 
   def add(a: Number, b: Number): Number = reduce(combine(a, b))
@@ -36,10 +28,10 @@ object Day18 extends ParseLineDay[Day18.Number, Int, Int] {
     var current = a
 
     while(true) {
-      val exploded = explode(current)
-      if(exploded == current) {
-        val splitted = split(current)
-        if(splitted == current) {
+      val (exploded, didExplode) = explode(current)
+      if(!didExplode) {
+        val (splitted, didSplit) = split(current)
+        if(!didSplit) {
           return current
         }
 
@@ -52,68 +44,58 @@ object Day18 extends ParseLineDay[Day18.Number, Int, Int] {
     current
   }
 
-  def explode(a: Number): Number = {
-    val rps = reversePaths(a)
+  def explode(a: Number): (Number, Boolean) = {
+    def addRegular(x: Number, y: Number): Number = Number.Regular(x.asInstanceOf[Number.Regular].value + y.asInstanceOf[Number.Regular].value)
 
-    def inner(n: Number, reversePath: Path): List[Command] = {
-      n match {
-        case Number.Pair(left, right) => {
-          if(reversePath.length >= 4) {
-            val leftIndex = rps.indexOf(false :: reversePath)
-            val rightIndex = leftIndex + 1
+    def search(z: Location, depth: Int): (Location, Boolean) = {
+      if(depth > 4 && z.focus.isInstanceOf[Number.Pair]) {
+        val pair = z.focus.asInstanceOf[Number.Pair]
 
-            val x = if leftIndex == 0 then List() else List(Command.Update(rps(leftIndex - 1).reverse, left.asInstanceOf[Number.Regular]))
-            val y = if rightIndex + 1 == rps.length then List() else List(Command.Update(rps(rightIndex + 1).reverse, right.asInstanceOf[Number.Regular]))
+        val a = z.update(Number.Regular(0))
+        val b = a.prev.flatMap(_.update(addRegular(_, pair.left)).next).getOrElse(a)
+        val c = b.next.flatMap(_.update(addRegular(_, pair.right)).prev).getOrElse(b)
 
-            return x ++ y ++ List(Command.Set(reversePath.reverse, Number.Regular(0)))
+        return (c, true)
+      }
+
+      z.focus match {
+        case Number.Pair(_, _) => {
+          val first = search(z.first, depth + 1)
+          if(first._2) {
+            return first
           }
 
-          val leftCommands = inner(left, false :: reversePath)
-          if(leftCommands.nonEmpty) {
-            return leftCommands
+          val second = search(z.second, depth + 1)
+          if(second._2) {
+            return second
           }
 
-          inner(right, true :: reversePath)
+          (z, false)
         }
-        case Number.Regular(value) => List()
+        case Number.Regular(_) => (z, false)
       }
     }
 
-    def apply(a: Number, command: Command): Number = command match {
-      case Command.Set(path, value) => if path.isEmpty then value else a match {
-        case Number.Pair(left, right) => Number.Pair(if path.head then left else apply(left, Command.Set(path.tail, value)), if path.head then apply(right, Command.Set(path.tail, value)) else right)
-        case Number.Regular(value) => ???
-      }
-      case Command.Update(path, value) => a match {
-        case Number.Pair(left, right) => Number.Pair(if path.head then left else apply(left, Command.Update(path.tail, value)), if path.head then apply(right, Command.Update(path.tail, value)) else right)
-        case Number.Regular(current) => if path.isEmpty then Number.Regular(current + value.value) else ???
-      }
-    }
-
-    val commands = inner(a, List())
-    commands.foldLeft(a)(apply)
+    search(Location(a, Path.Top), 1).applyLeft(_.upMost.focus)
   }
 
-  def split(a: Number): Number = {
+  def split(a: Number): (Number, Boolean) = {
     a match {
       case Number.Pair(left, right) => {
-        val left1 = split(left)
-        if (left1 != left) {
-          return Number.Pair(left1, right)
+        val (left1, didSplitLeft) = split(left)
+        if (didSplitLeft) {
+          return (Number.Pair(left1, right), true)
         }
 
-        val right1 = split(right)
-        Number.Pair(left, right1)
-      }
-      case Number.Regular(value) if value >= 10 => Number.Pair(Number.Regular(value / 2), Number.Regular(value - (value / 2)))
-      case Number.Regular(value) => a
-    }
-  }
+        val (right1, didSplitRight) = split(right)
+        if(didSplitRight) {
+          return (Number.Pair(left, right1), true)
+        }
 
-  def reversePaths(a: Number, path: Path = List()): List[Path] = {
-    a match {
-      case Number.Pair(left, right) => reversePaths(left, false :: path) ++ reversePaths(right, true :: path)
-      case Number.Regular(value) => List(path)
+        (a, false)
+      }
+      case Number.Regular(value) if value >= 10 => (Number.Pair(Number.Regular(value / 2), Number.Regular(value - (value / 2))), true)
+      case Number.Regular(value) => (a, false)
     }
   }
 
@@ -121,7 +103,60 @@ object Day18 extends ParseLineDay[Day18.Number, Int, Int] {
     case Pair(left: Number, right: Number)
     case Regular(value: Int)
 
-  type Path = List[Boolean]
+  enum Path:
+    case Top
+    case Left(parent: Path, right: Number)
+    case Right(left: Number, parent: Path)
+
+  // implements a Zipper (https://www.st.cs.uni-saarland.de/edu/seminare/2005/advanced-fp/docs/huet-zipper.pdf)
+  case class Location(focus: Number, path: Path) {
+    def update(value: Number): Location = Location(value, path)
+    def update(fn: Number => Number): Location = Location(fn(focus), path)
+
+    def tryFirst: Option[Location] = focus match {
+      case Number.Pair(left, right) => Some(Location(left, Path.Left(path, right)))
+      case Number.Regular(value) => None
+    }
+    def first: Location = tryFirst.get
+    def trySecond: Option[Location] = focus match {
+      case Number.Pair(left, right) => Some(Location(right, Path.Right(left, path)))
+      case Number.Regular(value) => None
+    }
+    def second: Location = trySecond.get
+
+    def tryUp: Option[Location] = path match {
+      case Path.Top => None
+      case Path.Left(parent, right) => Some(Location(Number.Pair(focus, right), parent))
+      case Path.Right(left, parent) => Some(Location(Number.Pair(left, focus), parent))
+    }
+    def up: Location = tryUp.get
+
+    def tryLeft: Option[Location] = path match {
+      case Path.Top => None
+      case Path.Left(parent, right) => None
+      case Path.Right(left, parent) => Some(Location(left, Path.Left(parent, focus)))
+    }
+    def tryRight: Option[Location] = path match {
+      case Path.Top => None
+      case Path.Left(parent, right) => Some(Location(right, Path.Right(focus, parent)))
+      case Path.Right(left, parent) => None
+    }
+
+    def firstMost: Location = tryFirst.map(_.firstMost).getOrElse(this)
+    def secondMost: Location = trySecond.map(_.secondMost).getOrElse(this)
+    def upMost: Location = tryUp.map(_.upMost).getOrElse(this)
+
+    def prev: Option[Location] = {
+      // right most item before current
+      // try going left then deep on the seconds
+      // otherwise go up a level a try finding the previous there
+      tryLeft.map(_.secondMost).orElse(tryUp.flatMap(_.prev))
+    }
+    def next: Option[Location] = {
+      // opposite of prev ^
+      tryRight.map(_.firstMost).orElse(tryUp.flatMap(_.next))
+    }
+  }
 
   enum Command:
     case Set(path: Path, value: Number)
