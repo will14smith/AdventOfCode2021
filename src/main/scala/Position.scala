@@ -8,6 +8,10 @@ case class Position(x: Int, y: Int) {
 case class Position3(x: Int, y: Int, z: Int) {
   def +(other: Position3): Position3 = Position3(x + other.x, y + other.y, z + other.z)
   def -(other: Position3): Position3 = Position3(x - other.x, y - other.y, z - other.z)
+
+  def manhattan(other: Position3): Int = (x - other.x).abs + (y - other.y).abs + (z - other.z).abs
+
+  override def hashCode(): Int = x ^ y ^ z
 }
 
 object Position3 {
