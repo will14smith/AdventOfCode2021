@@ -19,8 +19,8 @@ case class Grid[T](private val elements: Array[Array[T]]) {
 
   def keys: Seq[Position] = for { y <- 0 until h; x <- 0 until w } yield Position(x, y)
 
-  def w: Int = if h == 0 then 0 else elements(0).length
-  def h: Int = elements.length
+  val w: Int = if elements.length == 0 then 0 else elements(0).length
+  val h: Int = elements.length
 
   def isValid(p: Position): Boolean = isValid(p.x, p.y)
   def isValid(x: Int, y: Int): Boolean = 0 <= y && y < h && 0 <= x && x < w
@@ -29,6 +29,11 @@ case class Grid[T](private val elements: Array[Array[T]]) {
 object Grid {
   def empty[T](g: Grid[T])(implicit ct: ClassTag[T]): Grid[T] = empty[T](g.w, g.h)
   def empty[T](w: Int, h: Int)(implicit ct: ClassTag[T]): Grid[T] = Grid(Array.ofDim[T](h, w))
+}
+
+case class InfinteGrid[A](g: Grid[A], default: A) {
+  def apply(p: Position): A = apply(p.x, p.y)
+  def apply(x: Int, y: Int): A = if g.isValid(x, y) then g.apply(x, y) else default
 }
 
 extension[A] (g: Grid[A])
