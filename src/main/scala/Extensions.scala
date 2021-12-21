@@ -17,3 +17,4 @@ extension[A] (i : IterableOnce[A])
 
 extension[A] (f: Map[A, Long])
   def freqFlatMap[B](fn: A => IterableOnce[B]): Map[B, Long] = f.iterator.flatMap(s => fn(s._1).iterator.map((_, s._2))).toList.groupMapReduce(_._1)(_._2)(_ + _)
+  def freqFlatMapWithFreq[B](fn: A => IterableOnce[(B, Long)]): Map[B, Long] = f.iterator.flatMap(s => fn(s._1).iterator.map(t => (t._1, t._2 * s._2))).toList.groupMapReduce(_._1)(_._2)(_ + _)
