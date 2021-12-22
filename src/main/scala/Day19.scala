@@ -1,14 +1,14 @@
 import scala.collection.mutable
 
-object Day19 extends ParseDay[Day19.Scanners, Int, Int] {
+object Day19 extends ParseDay[Day19.Scanners, Long, Long] {
   def header: Parser[Int] = "---" ~ "scanner" ~> number <~ "---" ~ "\n"
   def beacon: Parser[Position3] = commaNumbers ^^ { case List(x, y, z) => Position3(x, y, z) }
   def scanner: Parser[Scanner] = header ~ rep1sep(beacon, "\n") ^^ { case i ~ b => Scanner(i, b) }
 
   def model: Parser[Scanners] = repsep(scanner, "\n\n")
 
-  def part1(data: Scanners): Int = alignAll(data).map(_._1).flatMap(_.beacons).toSet.size
-  def part2(data: Scanners): Int = {
+  def part1(data: Scanners): Long = alignAll(data).map(_._1).flatMap(_.beacons).toSet.size
+  def part2(data: Scanners): Long = {
     val offsets = alignAll(data).map(_._2)
     (for(a <- offsets; b <- offsets) yield a.manhattan(b)).max
   }
@@ -32,7 +32,7 @@ object Day19 extends ParseDay[Day19.Scanners, Int, Int] {
     matches
   }
 
-  def distanceThumbprint(scanner: Scanner): List[Int] = {
+  def distanceThumbprint(scanner: Scanner): List[Long] = {
     for (x <- scanner.beacons; y <- scanner.beacons if x != y) yield x.manhattan(y)
   }
 

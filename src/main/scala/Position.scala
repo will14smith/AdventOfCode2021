@@ -5,13 +5,11 @@ case class Position(x: Int, y: Int) {
   def +(other: Position): Position = Position(x + other.x, y + other.y)
 }
 
-case class Position3(x: Int, y: Int, z: Int) {
+case class Position3(x: Long, y: Long, z: Long) {
   def +(other: Position3): Position3 = Position3(x + other.x, y + other.y, z + other.z)
   def -(other: Position3): Position3 = Position3(x - other.x, y - other.y, z - other.z)
 
-  def manhattan(other: Position3): Int = (x - other.x).abs + (y - other.y).abs + (z - other.z).abs
-
-  override def hashCode(): Int = x ^ y ^ z
+  def manhattan(other: Position3): Long = (x - other.x).abs + (y - other.y).abs + (z - other.z).abs
 }
 
 object Position3 {
