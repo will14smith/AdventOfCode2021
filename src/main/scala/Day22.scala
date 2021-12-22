@@ -1,4 +1,5 @@
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 object Day22 extends ParseLineDay[Day22.Instruction, Long, Long] {
   def action: Parser[Region => Instruction] = "on" ~> success(Instruction.On.apply) | "off" ~> success(Instruction.Off.apply)
@@ -17,17 +18,22 @@ object Day22 extends ParseLineDay[Day22.Instruction, Long, Long] {
 
     def intersect(other: Region): Option[Region] = {
       val tlx = Math.max(this.topLeft.x, other.topLeft.x)
-      val tly = Math.max(this.topLeft.y, other.topLeft.y)
-      val tlz = Math.max(this.topLeft.z, other.topLeft.z)
-
       val brx = Math.min(this.bottomRight.x, other.bottomRight.x)
+      if (tlx >= brx) return None
+
+      val tly = Math.max(this.topLeft.y, other.topLeft.y)
       val bry = Math.min(this.bottomRight.y, other.bottomRight.y)
+      if (tly >= bry) return None
+
+      val tlz = Math.max(this.topLeft.z, other.topLeft.z)
       val brz = Math.min(this.bottomRight.z, other.bottomRight.z)
+      if (tlz >= brz) return None
 
       val region = Region(Position3(tlx, tly, tlz), Position3(brx, bry, brz))
 
-      if region.isEmpty then None else Some(region)
+      Some(region)
     }
+
     def remove(other: Region): List[Region] = {
       val top = Region(topLeft, Position3(bottomRight.x, Math.min(other.topLeft.y, bottomRight.y), bottomRight.z))
       val bottom = Region(Position3(topLeft.x, Math.max(topLeft.y, other.bottomRight.y), topLeft.z), bottomRight)
@@ -42,6 +48,21 @@ object Day22 extends ParseLineDay[Day22.Instruction, Long, Long] {
 
       regions
     }
+
+    def removeThisFrom(regions: List[Region]): List[Region] = {
+      val result = new mutable.ListBuffer[Region]
+
+      for(r <- regions) {
+        val i = intersect(r)
+        if (i.isDefined) {
+          result.addAll(r.remove(i.get))
+        } else {
+          result.addOne(r)
+        }
+      }
+
+      result.toList
+    }
   }
 
   enum Instruction:
@@ -54,27 +75,9 @@ object Day22 extends ParseLineDay[Day22.Instruction, Long, Long] {
       case Instruction.Off(region) => off(region)
     }
 
-    def count: Long = regions.map(r => (r.bottomRight.x - r.topLeft.x) * (r.bottomRight.y - r.topLeft.y) * (r.bottomRight.z - r.topLeft.z)).sum
+    def count: Long = regions.map(r => r.bottomRight - r.topLeft).map(r => r.x * r.y * r.z).sum
 
-    private def on(region: Region): Map = {
-      val newRegions = regions.foldLeft(List(region))((n, other) => {
-        n.flatMap(r => {
-          val i = r.intersect(other)
-          if i.isDefined then r.remove(i.get) else List(r)
-        })
-      })
-
-      Map(regions ++ newRegions)
-    }
-    private def off(region: Region): Map = {
-      Map(regions.flatMap(r => {
-        val intersection = r.intersect(region)
-        if intersection.isDefined then {
-          r.remove(intersection.get)
-        } else {
-          List(r)
-        }
-      }))
-    }
+    private def on(region: Region): Map = Map(regions ++ regions.foldLeft(List(region))((n, other) => other.removeThisFrom(n)))
+    private def off(region: Region): Map = Map(region.removeThisFrom(regions))
   }
 }
