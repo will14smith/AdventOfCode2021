@@ -4,6 +4,7 @@ extension[A, B] (x: (A, B))
 
 extension (i: Int)
   def clampLower(l: Int): Int = if i < l then l else i
+  def clampUpper(h: Int): Int = if i > h then h else i
   def between(incLower: Int, incHigher: Int): Boolean = incLower <= i && i <= incHigher
 
 extension (x: (Int, Int))
