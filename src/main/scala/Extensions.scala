@@ -7,6 +7,11 @@ extension (i: Int)
   def clampUpper(h: Int): Int = if i > h then h else i
   def between(incLower: Int, incHigher: Int): Boolean = incLower <= i && i <= incHigher
 
+extension (i: Long)
+  def clampLower(l: Long): Long = if i < l then l else i
+  def clampUpper(h: Long): Long = if i > h then h else i
+  def between(incLower: Long, incHigher: Long): Boolean = incLower <= i && i <= incHigher
+
 extension (x: (Int, Int))
   def min = if x._1 < x._2 then x._1 else x._2
   def max = if x._1 > x._2 then x._1 else x._2

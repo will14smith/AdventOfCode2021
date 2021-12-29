@@ -1,16 +1,12 @@
 import scala.collection.mutable
+import Day24.{Instruction, Variable}
 
-object Day24BruteForce extends ParseLineDay[Day24BruteForce.Instruction, Long, Long] {
-  def variable: Parser[Variable] = "w" ~> success(Variable.W) | "x" ~> success(Variable.X) | "y" ~> success(Variable.Y) | "z" ~> success(Variable.Z)
-  def variableOrNumber: Parser[Variable | Int] = variable | number
-
-  def model: Parser[Instruction] =
-        "inp" ~> variable ^^ { Instruction.Inp(_) }
-      | "add" ~> variable ~ variableOrNumber ^^ { case l ~ r => Instruction.Add(l, r) }
-      | "mul" ~> variable ~ variableOrNumber ^^ { case l ~ r => Instruction.Mul(l, r) }
-      | "div" ~> variable ~ variableOrNumber ^^ { case l ~ r => Instruction.Div(l, r) }
-      | "mod" ~> variable ~ variableOrNumber ^^ { case l ~ r => Instruction.Mod(l, r) }
-      | "eql" ~> variable ~ variableOrNumber ^^ { case l ~ r => Instruction.Eql(l, r) }
+object Day24BruteForce extends ParseLineDay[Instruction, Long, Long] {
+  def model: Parser[Instruction] = Parser(i => Day24.model(i) match {
+    case Day24.Success(result, next) => Success(result, next)
+    case Day24.Failure(msg, next) => Failure(msg, next)
+    case Day24.Error(msg, next) => Error(msg, next)
+  })
 
   def part1(data: Iterator[Instruction]): Long = solve(data.toList, 9 to 1 by -1)
   def part2(data: Iterator[Instruction]): Long = solve(data.toList, 1 to 9)
@@ -59,19 +55,6 @@ object Day24BruteForce extends ParseLineDay[Day24BruteForce.Instruction, Long, L
 
     eval(State.initial, instructions, 0, 0).get
   }
-
-  enum Variable:
-    case W
-    case X
-    case Y
-    case Z
-  enum Instruction:
-    case Inp(variable: Variable)
-    case Add(left: Variable, right: Variable | Int)
-    case Mul(left: Variable, right: Variable | Int)
-    case Div(left: Variable, right: Variable | Int)
-    case Mod(left: Variable, right: Variable | Int)
-    case Eql(left: Variable, right: Variable | Int)
 
   case class State(w: Long, x: Long, y: Long, z: Long) {
     def get(source: Variable): Long = {
